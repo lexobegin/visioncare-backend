@@ -1,0 +1,39 @@
+# ══════════════════════════════════════════════════════
+# VisionCare AI — Backend (NestJS) — .gitignore
+# ══════════════════════════════════════════════════════
+
+# Dependencias
+node_modules/
+
+# Compilación
+dist/
+*.tsbuildinfo
+
+# Variables de entorno (NUNCA subir el .env real)
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cobertura de pruebas
+coverage/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Temporales
+tmp/
+*.tmp
