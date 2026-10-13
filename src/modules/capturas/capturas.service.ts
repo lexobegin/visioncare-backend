@@ -62,7 +62,9 @@ export class CapturasService {
     archivo: { buffer: Buffer; mimeType: string; nombre: string },
     tokenUsuario?: string,
   ): Promise<CapturaResponseDto> {
-    const reconocer = dto.reconocer ?? true;
+    const accionApp =
+      dto.accion_app ??
+      (dto.reconocer === false ? undefined : 'RECONOCER_OBJETOS');
 
     // ─── 1. Subir a R2 (si está configurado) ───
     let r2_key: string | null = null;
@@ -90,7 +92,7 @@ export class CapturasService {
     );
 
     // ─── 3-5. Reconocer con IA (opcional) ───
-    if (!reconocer) {
+    if (!accionApp) {
       // CU07 puro: solo captura, queda PENDIENTE para procesar después
       await this.capturasRepo.update(captura.id_captura, {
         estado: 'PENDIENTE',
@@ -103,27 +105,38 @@ export class CapturasService {
     let resumenVoz: string | null = null;
 
     try {
-      const respuestaIA = await this.iaClient.detectarObjetos(
-        archivo.buffer,
-        archivo.mimeType,
-        archivo.nombre,
-        tokenUsuario,
-        Number(captura.id_captura), // 🆕
-      );
+      if (accionApp === 'LEER_TEXTO') {
+        const resultadoOCR = await this.iaClient.leerTexto(
+          archivo.buffer,
+          archivo.mimeType,
+          archivo.nombre,
+          tokenUsuario,
+          Number(captura.id_captura),
+        );
+        iaDisponible = true;
+        resumenVoz = resultadoOCR.texto;
+      } else {
+        const respuestaIA = await this.iaClient.detectarObjetos(
+          archivo.buffer,
+          archivo.mimeType,
+          archivo.nombre,
+          tokenUsuario,
+          Number(captura.id_captura),
+        );
+        iaDisponible = true;
 
-      iaDisponible = true;
+        const entidades = this.crearDetecciones(
+          Number(captura.id_captura),
+          respuestaIA,
+        );
+        const guardadas =
+          entidades.length > 0
+            ? await this.deteccionesRepo.save(entidades)
+            : [];
 
-      const entidades = this.crearDetecciones(
-        Number(captura.id_captura),
-        respuestaIA,
-      );
-      const guardadas =
-        entidades.length > 0
-          ? await this.deteccionesRepo.save(entidades)
-          : [];
-
-      deteccionesDto = guardadas.map((d) => this.mapearDeteccion(d));
-      resumenVoz = this.construirResumenVoz(guardadas);
+        deteccionesDto = guardadas.map((d) => this.mapearDeteccion(d));
+        resumenVoz = this.construirResumenVoz(guardadas);
+      }
 
       await this.capturasRepo.update(captura.id_captura, {
         estado: 'PROCESADA',

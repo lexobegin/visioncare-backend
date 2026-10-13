@@ -19,6 +19,17 @@ import {
  */
 export class RegistrarCapturaDto {
   @ApiPropertyOptional({
+    enum: ['LEER_TEXTO', 'RECONOCER_OBJETOS'],
+    description:
+      'Análisis solicitado: OCR o detección de objetos. Si se omite, se usa reconocer.',
+  })
+  @IsOptional()
+  @IsIn(['LEER_TEXTO', 'RECONOCER_OBJETOS'], {
+    message: 'accion_app solo acepta: LEER_TEXTO, RECONOCER_OBJETOS.',
+  })
+  accion_app?: 'LEER_TEXTO' | 'RECONOCER_OBJETOS';
+
+  @ApiPropertyOptional({
     enum: ['IMAGEN', 'FOTOGRAMA'],
     default: 'IMAGEN',
     description: 'Tipo de captura (VIDEO se usa en Sprints 2-3)',
@@ -59,8 +70,8 @@ export class RegistrarCapturaDto {
     default: true,
     example: true,
     description:
-      'true = capturar Y reconocer con IA (CU07+CU08). ' +
-      'false = solo guardar la captura (CU07).',
+      'Compatibilidad: true = detectar objetos; false = solo guardar. ' +
+      'accion_app, si se envía, tiene prioridad.',
   })
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)

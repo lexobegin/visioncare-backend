@@ -21,7 +21,7 @@ import { RolUsuario, Usuario } from '../usuarios/entities/usuario.entity';
  */
 export interface JwtPayload {
   /** Estándar JWT: subject = id del usuario */
-  sub: number;
+  sub: string;
   correo: string;
   rol: RolUsuario;
   iss?: string;

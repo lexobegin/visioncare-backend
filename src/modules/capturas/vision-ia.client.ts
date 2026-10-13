@@ -44,21 +44,30 @@ export interface RespuestaDeteccionIA {
   }[];
 }
 
+/** Respuesta esperada por el endpoint OCR */
+export interface RespuestaOCRIA {
+  texto: string;
+}
+
 @Injectable()
 export class VisionIaClient {
   private readonly logger = new Logger(VisionIaClient.name);
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
+  private readonly apiKey: string;
 
   constructor(config: ConfigService) {
     this.baseUrl = (
       config.get<string>('IA_SERVICE_URL') ||
       process.env.IA_SERVICE_URL ||
       'http://localhost:8000/api/v1'
-    ).replace(/\/$/, '');
+    )
+      .trim()
+      .replace(/\/+$/, '');
 
     this.timeoutMs =
       parseInt(process.env.IA_SERVICE_TIMEOUT_MS ?? '', 10) || 30000;
+    this.apiKey = (config.get<string>('IA_API_KEY') || '').trim();
   }
 
   get disponible(): boolean {
@@ -73,15 +82,9 @@ export class VisionIaClient {
     tokenUsuario?: string,
     idCaptura?: number, // 🆕 trazabilidad en registros_ia
   ): Promise<RespuestaDeteccionIA> {
-    const url = `${this.baseUrl}/detecciones/objetos`;
+    const url = this.construirUrl('/detecciones/objetos');
 
-    // Capa 2: reenvía el JWT del usuario (atribución en registros_ia)
-    const headers: Record<string, string> = {};
-    if (tokenUsuario) headers['Authorization'] = tokenUsuario;
-
-    // Capa 1: API Key compartida (si está configurada)
-    const apiKey = process.env.IA_API_KEY;
-    if (apiKey) headers['X-API-Key'] = apiKey;
+    const headers = this.crearHeadersAutenticacion(tokenUsuario);
 
     try {
       // FormData y Blob son nativos en Node ≥18
@@ -105,10 +108,11 @@ export class VisionIaClient {
       if (!respuesta.ok) {
         const detalle = await respuesta.text().catch(() => '');
         this.logger.error(
-          `FastAPI respondió ${respuesta.status}: ${detalle.slice(0, 300)}`,
+          `FastAPI HTTP error: POST ${url} status=${respuesta.status} ` +
+            `statusText="${respuesta.statusText}" response=${detalle}`,
         );
         throw new ServiceUnavailableException(
-          'El servicio de IA respondió con un error.',
+          `FastAPI respondió HTTP ${respuesta.status}.`,
         );
       }
 
@@ -126,12 +130,99 @@ export class VisionIaClient {
       if (error instanceof ServiceUnavailableException) throw error;
 
       this.logger.error(
-        `No se pudo contactar al servicio de IA (${url}): ${error}`,
+        `Falló la solicitud a FastAPI: POST ${url}; ${this.detalleError(error)}`,
       );
       throw new ServiceUnavailableException(
         'El servicio de IA no está disponible en este momento. ' +
           'La captura quedó registrada y podrá procesarse más tarde.',
       );
     }
+  }
+
+  /** Envía la imagen al endpoint OCR y devuelve el texto reconocido */
+  async leerTexto(
+    buffer: Buffer,
+    mimeType: string,
+    nombreArchivo: string,
+    tokenUsuario?: string,
+    idCaptura?: number,
+  ): Promise<RespuestaOCRIA> {
+    const rutaOCR = process.env.IA_OCR_PATH || '/ocr/leer';
+    const url = this.construirUrl(rutaOCR);
+
+    const headers = this.crearHeadersAutenticacion(tokenUsuario);
+
+    try {
+      const formulario = new FormData();
+      formulario.append(
+        'imagen',
+        new Blob([new Uint8Array(buffer)], { type: mimeType }),
+        nombreArchivo,
+      );
+      if (idCaptura !== undefined) {
+        formulario.append('id_captura', String(idCaptura));
+      }
+
+      const respuesta = await fetch(url, {
+        method: 'POST',
+        body: formulario,
+        headers,
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+
+      if (!respuesta.ok) {
+        const detalle = await respuesta.text().catch(() => '');
+        this.logger.error(
+          `FastAPI HTTP error: POST ${url} status=${respuesta.status} ` +
+            `statusText="${respuesta.statusText}" response=${detalle}`,
+        );
+        throw new ServiceUnavailableException(
+          `FastAPI OCR respondió HTTP ${respuesta.status}.`,
+        );
+      }
+
+      const datos = (await respuesta.json()) as RespuestaOCRIA;
+      if (!datos || typeof datos.texto !== 'string') {
+        throw new ServiceUnavailableException(
+          'El servicio OCR devolvió un formato inesperado; se esperaba el campo texto.',
+        );
+      }
+
+      return datos;
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) throw error;
+
+      this.logger.error(
+        `Falló la solicitud OCR a FastAPI: POST ${url}; ${this.detalleError(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        'El servicio de IA no está disponible en este momento. ' +
+          'La captura quedó registrada y podrá procesarse más tarde.',
+      );
+    }
+  }
+
+  private crearHeadersAutenticacion(
+    tokenUsuario?: string,
+  ): Record<string, string> {
+    const headers: Record<string, string> = {};
+    const token = tokenUsuario?.trim().replace(/^Bearer\s+/i, '').trim();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (this.apiKey) headers['X-API-Key'] = this.apiKey;
+    return headers;
+  }
+
+  private construirUrl(ruta: string): string {
+    return `${this.baseUrl}/${ruta.replace(/^\/+/, '')}`;
+  }
+
+  private detalleError(error: unknown): string {
+    if (!(error instanceof Error)) return String(error);
+
+    const causa = (error as Error & { cause?: unknown }).cause;
+    const detalleCausa = causa instanceof Error ? `; cause=${causa.message}` : '';
+    return `${error.name}: ${error.message}${detalleCausa}`;
   }
 }

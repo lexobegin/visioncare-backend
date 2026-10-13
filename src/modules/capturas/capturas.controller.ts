@@ -38,7 +38,7 @@ const TAMANIO_MAXIMO_BYTES = 10 * 1024 * 1024;
  * Endpoints de capturas de entorno (requieren JWT):
  *
  *   POST /capturas      → CU07 (+CU08): multipart con la imagen.
- *                         Campo 'reconocer=true' ejecuta YOLO.
+ *                         accion_app elige OCR o detección de objetos.
  *   GET  /capturas      → mis capturas (paginado, reciente primero)
  *   GET  /capturas/:id  → detalle con detecciones + resumen voz
  *
@@ -69,6 +69,11 @@ export class CapturasController {
       type: 'object',
       properties: {
         imagen: { type: 'string', format: 'binary' },
+        accion_app: {
+          type: 'string',
+          enum: ['LEER_TEXTO', 'RECONOCER_OBJETOS'],
+          description: 'LEER_TEXTO ejecuta OCR; RECONOCER_OBJETOS ejecuta YOLO.',
+        },
         tipo_captura: { type: 'string', enum: ['IMAGEN', 'FOTOGRAMA'] },
         origen: { type: 'string', enum: ['CAMARA', 'GALERIA'] },
         latitud: { type: 'number', example: -17.7833 },
@@ -76,7 +81,7 @@ export class CapturasController {
         reconocer: {
           type: 'boolean',
           example: true,
-          description: 'false = solo capturar (CU07) sin IA',
+          description: 'Compatibilidad: false = solo capturar si no se envía accion_app.',
         },
       },
       required: ['imagen'],
