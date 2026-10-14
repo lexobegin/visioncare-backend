@@ -6,6 +6,7 @@ import { UsuariosController } from './usuarios.controller';
 import { UsuariosService } from './usuarios.service';
 
 import { HistorialModule } from '../historial/historial.module';
+import { Institucion } from '../instituciones/entities/institucion.entity';
 
 /**
  * ══════════════════════════════════════════════════════
@@ -15,7 +16,10 @@ import { HistorialModule } from '../historial/historial.module';
  * ══════════════════════════════════════════════════════
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuario, Perfil]), HistorialModule],
+  imports: [
+    TypeOrmModule.forFeature([Usuario, Perfil, Institucion]),
+    HistorialModule,
+  ],
 
   controllers: [UsuariosController],
 

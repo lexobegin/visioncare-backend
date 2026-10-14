@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsIn,
@@ -6,6 +7,8 @@ import {
   IsOptional,
   MaxLength,
   Min,
+  IsString,
+  MinLength,
 } from 'class-validator';
 import {
   EstadoUsuario,
@@ -23,8 +26,24 @@ import {
  * ══════════════════════════════════════════════════════
  */
 export class AdminActualizarUsuarioDto {
+  @ApiPropertyOptional({ example: 'María Fernanda' })
+  @IsOptional()
+  @IsString({ message: 'nombres debe ser texto.' })
+  @MinLength(2, { message: 'nombres debe tener al menos 2 caracteres.' })
+  @MaxLength(100, { message: 'nombres no puede superar 100 caracteres.' })
+  nombres?: string;
+
+  @ApiPropertyOptional({ example: 'González Pérez' })
+  @IsOptional()
+  @IsString({ message: 'apellidos debe ser texto.' })
+  @MaxLength(100, { message: 'apellidos no puede superar 100 caracteres.' })
+  apellidos?: string;
+
   @ApiPropertyOptional({ example: 'nuevo@correo.com' })
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
   @IsEmail({}, { message: 'correo no tiene un formato válido.' })
   @MaxLength(150, { message: 'correo no puede superar 150 caracteres.' })
   correo?: string;

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 import { PreferenciaAccesibilidad } from './entities/preferencia-accesibilidad.entity';
 import {
   ActualizarPreferenciasDto,
@@ -26,7 +27,22 @@ export class AccesibilidadService {
   constructor(
     @InjectRepository(PreferenciaAccesibilidad)
     private readonly preferenciasRepo: Repository<PreferenciaAccesibilidad>,
+    @InjectRepository(Usuario)
+    private readonly usuariosRepo: Repository<Usuario>,
   ) {}
+
+  async obtenerComoAdmin(idUsuario: number): Promise<PreferenciasResponseDto> {
+    await this.validarUsuario(idUsuario);
+    return this.obtener(idUsuario);
+  }
+
+  async actualizarComoAdmin(
+    idUsuario: number,
+    dto: ActualizarPreferenciasDto,
+  ): Promise<PreferenciasResponseDto> {
+    await this.validarUsuario(idUsuario);
+    return this.actualizar(idUsuario, dto);
+  }
 
   /**
    * Devuelve las preferencias del usuario; las crea con
@@ -79,6 +95,17 @@ export class AccesibilidadService {
   }
 
   // ═══════════════════════ HELPERS ═══════════════════════
+
+  private async validarUsuario(idUsuario: number): Promise<void> {
+    const existe = await this.usuariosRepo.exist({
+      where: { id_usuario: idUsuario },
+    });
+    if (!existe) {
+      throw new NotFoundException(
+        `Usuario con id ${idUsuario} no encontrado.`,
+      );
+    }
+  }
 
   private async obtenerOCrear(
     idUsuario: number,

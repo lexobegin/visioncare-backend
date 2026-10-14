@@ -63,6 +63,21 @@ export class AccesibilidadController {
   obtenerPorUsuario(
     @Param('id', ParseIdPipe) id: number,
   ): Promise<PreferenciasResponseDto> {
-    return this.accesibilidadService.obtener(id);
+    return this.accesibilidadService.obtenerComoAdmin(id);
+  }
+
+  @Patch('usuario/:id')
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'CU35 — Actualizar preferencias de un usuario (solo ADMIN)',
+  })
+  @ApiParam({ name: 'id', example: 1 })
+  @ApiResponse({ status: 200, type: PreferenciasResponseDto })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  actualizarPorUsuario(
+    @Param('id', ParseIdPipe) id: number,
+    @Body() dto: ActualizarPreferenciasDto,
+  ): Promise<PreferenciasResponseDto> {
+    return this.accesibilidadService.actualizarComoAdmin(id, dto);
   }
 }
