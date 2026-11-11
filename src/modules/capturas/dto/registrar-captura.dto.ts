@@ -9,6 +9,11 @@ import {
   Min,
 } from 'class-validator';
 
+import {
+  VALORES_TIPO_ANALISIS,
+  TipoAnalisis,
+} from './tipo-analisis.enum';
+
 /**
  * ══════════════════════════════════════════════════════
  * Campos del formulario multipart (además del archivo).
@@ -49,6 +54,20 @@ export class RegistrarCapturaDto {
     message: 'origen solo acepta: CAMARA, GALERIA.',
   })
   origen?: 'CAMARA' | 'GALERIA';
+
+  @ApiPropertyOptional({
+    enum: VALORES_TIPO_ANALISIS,
+    default: 'OBJETOS',
+    description:
+      'Tipo de análisis a ejecutar (catálogo Tanda 3). ' +
+      'OBJETOS=YOLO (S1) · OCR=leer texto · SENALES · PRODUCTOS · ' +
+      'COLORES · BILLETES (valor+autenticidad) · DESCRIPCION',
+  })
+  @IsOptional()
+  @IsIn(VALORES_TIPO_ANALISIS, {
+    message: `tipo_analisis solo acepta: ${VALORES_TIPO_ANALISIS.join(', ')}.`,
+  })
+  tipo_analisis?: TipoAnalisis;
 
   @ApiPropertyOptional({ example: -17.7833, minimum: -90, maximum: 90 })
   @IsOptional()

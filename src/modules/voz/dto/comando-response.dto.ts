@@ -36,6 +36,16 @@ export class ComandoVozResponseDto {
   accion_app: string;
 
   @ApiProperty({
+    example: 'OCR',
+    nullable: true,
+    description:
+      'S2 — Análisis pre-seleccionado para la cámara (OBJETOS, OCR, ' +
+      'SENALES, PRODUCTOS, COLORES, BILLETES, DESCRIPCION). ' +
+      'Null si el comando no implica análisis visual.',
+  })
+  tipo_analisis: string | null;
+
+  @ApiProperty({
     example: 'Analizando los objetos de tu entorno.',
     description: 'Texto sugerido para reproducir con TTS',
   })

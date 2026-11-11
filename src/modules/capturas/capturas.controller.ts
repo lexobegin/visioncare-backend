@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Query,
@@ -26,7 +28,10 @@ import { ParseIdPipe } from '../../common/pipes';
 import {
   CapturaResponseDto,
   RegistrarCapturaDto,
+  AnalisisContinuoDto,
+  AnalisisContinuoResponseDto,
 } from './dto';
+import { AnalisisContinuoService } from './analisis-continuo.service';
 import { CapturasService } from './capturas.service';
 
 /** Tipos de imagen y tamaño máximo (10 MB) */
@@ -49,7 +54,10 @@ const TAMANIO_MAXIMO_BYTES = 10 * 1024 * 1024;
 @ApiBearerAuth('JWT-auth')
 @Controller('capturas')
 export class CapturasController {
-  constructor(private readonly capturasService: CapturasService) {}
+  constructor(
+    private readonly capturasService: CapturasService, 
+    private readonly continuoService: AnalisisContinuoService,
+  ) {}
 
   @Post()
   @UseInterceptors(
@@ -82,6 +90,11 @@ export class CapturasController {
           type: 'boolean',
           example: true,
           description: 'Compatibilidad: false = solo capturar si no se envía accion_app.',
+        },
+        tipo_analisis: {
+          type: 'string',
+          enum: ['OCR'],
+          description: "Solo 'OCR' = lectura continua de texto",
         },
       },
       required: ['imagen'],
@@ -119,6 +132,78 @@ export class CapturasController {
             nombre: archivo.originalname || 'captura.jpg',
         },
         autorizacion, // 🆕 "Bearer eyJ..." — se reenvía a FastAPI
+    );
+  }
+
+    /**
+   * MODO CONTINUO — análisis efímero de un fotograma.
+   *
+   * Diferencias con POST /capturas:
+   *   - NO sube a R2, NO persiste la imagen (efímero por diseño)
+   *   - Persiste SOLO si hay ALERTA (detección + alerta, sin imagen)
+   *   - Respuesta: nivel_novedad + mensaje_voz + ritmo sugerido
+   */
+  @Post('analizar')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('imagen', {
+      limits: { fileSize: TAMANIO_MAXIMO_BYTES },
+    }),
+  )
+  @ApiOperation({
+    summary:
+      'CU09/HU17 — Modo continuo: analizar fotograma (efímero) y priorizar narración',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        imagen: { type: 'string', format: 'binary' },
+        ancho: { type: 'number', example: 640 },
+        alto: { type: 'number', example: 480 },
+        bajo_consumo: { type: 'string', enum: ['true', 'false'] },
+        latitud: { type: 'number' },
+        longitud: { type: 'number' },
+        precision_gps: { type: 'number' },
+      },
+      required: ['imagen'],
+    },
+  })
+  @ApiResponse({ status: 200, type: AnalisisContinuoResponseDto })
+  @ApiResponse({ status: 400, description: 'Archivo faltante o inválido.' })
+  analizarContinuo(
+    @CurrentUser('id_usuario') idUsuario: number,
+    @UploadedFile() archivo: Express.Multer.File | undefined,
+    @Body() dto: AnalisisContinuoDto,
+    @Headers('authorization') autorizacion?: string,
+  ): Promise<AnalisisContinuoResponseDto> {
+    if (!archivo) {
+      throw new BadRequestException(
+        'Debes enviar el fotograma en el campo "imagen".',
+      );
+    }
+    if (!MIME_IMAGENES.includes(archivo.mimetype)) {
+      throw new BadRequestException(
+        `Formato no soportado (${archivo.mimetype}). Aceptados: JPEG, PNG, WEBP.`,
+      );
+    }
+
+    return this.continuoService.analizarFotograma(
+      idUsuario,
+      {
+        buffer: archivo.buffer,
+        mimeType: archivo.mimetype,
+        nombre: archivo.originalname || 'fotograma.jpg',
+      },
+      Number(dto.ancho ?? 640),
+      Number(dto.alto ?? 480),
+      dto.bajo_consumo === 'true',
+      autorizacion,
+      dto.latitud,
+      dto.longitud,
+      dto.precision_gps,
+      dto.tipo_analisis, // T19
     );
   }
 
