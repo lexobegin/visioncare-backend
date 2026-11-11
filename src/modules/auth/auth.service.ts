@@ -193,7 +193,7 @@ export class AuthService {
     const jwt = this.config.get<JwtConfig>('jwt')!;
 
     const payload: JwtPayload = {
-      sub: Number(usuario.id_usuario),
+      sub: String(usuario.id_usuario),
       correo: usuario.correo,
       rol: usuario.rol,
     };

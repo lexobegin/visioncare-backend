@@ -5,4 +5,5 @@
 export * from './actualizar-perfil.dto';
 export * from './cambiar-contrasena.dto';
 export * from './admin-actualizar-usuario.dto';
+export * from './admin-crear-usuario.dto';
 export * from './usuario-response.dto';

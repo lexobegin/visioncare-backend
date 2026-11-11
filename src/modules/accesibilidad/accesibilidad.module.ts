@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PreferenciaAccesibilidad } from './entities/preferencia-accesibilidad.entity';
 import { AccesibilidadController } from './accesibilidad.controller';
 import { AccesibilidadService } from './accesibilidad.service';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 
 /**
  * ══════════════════════════════════════════════════════
@@ -12,7 +13,7 @@ import { AccesibilidadService } from './accesibilidad.service';
  * ══════════════════════════════════════════════════════
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([PreferenciaAccesibilidad])],
+  imports: [TypeOrmModule.forFeature([PreferenciaAccesibilidad, Usuario])],
 
   controllers: [AccesibilidadController],
 

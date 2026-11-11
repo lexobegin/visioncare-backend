@@ -119,9 +119,15 @@ export class CapturasService {
     archivo: { buffer: Buffer; mimeType: string; nombre: string },
     tokenUsuario?: string,
   ): Promise<CapturaResponseDto> {
+
     const tipo = dto.tipo_analisis ?? TipoAnalisis.OBJETOS;
     const cfg = CATALOGO_TIPOS[tipo];
     const reconocer = dto.reconocer ?? true;
+    
+    const accionApp =
+      dto.accion_app ??
+      (dto.reconocer === false ? undefined : 'RECONOCER_OBJETOS');
+
 
     // ─── 1. Subir a R2 (si está configurado) ───
     let r2_key: string | null = null;
@@ -149,10 +155,16 @@ export class CapturasService {
     );
     const idCaptura = Number(captura.id_captura);
 
+
     // ─── CU07 puro: sin IA (queda PENDIENTE) ───
-    if (!reconocer) {
-      await this.capturasRepo.update(idCaptura, { estado: 'PENDIENTE' });
-      return this.obtenerPorId(idCaptura, idUsuario);
+    
+    // ─── 3-5. Reconocer con IA (opcional) ───
+    if (!accionApp) {
+      // CU07 puro: solo captura, queda PENDIENTE para procesar después
+      await this.capturasRepo.update(captura.id_captura, {
+        estado: 'PENDIENTE',
+      });
+      return this.obtenerPorId(Number(captura.id_captura), idUsuario);
     }
 
     // ─── 3. Dispatch por tipo + persistencia + resumen ───
@@ -161,6 +173,7 @@ export class CapturasService {
     let iaDisponible = false;
 
     try {
+
       switch (tipo) {
         case TipoAnalisis.OBJETOS:
           ({ resultado, resumenVoz } = await this.analizarObjetos(
@@ -210,6 +223,7 @@ export class CapturasService {
 
       iaDisponible = true;
       await this.capturasRepo.update(idCaptura, {
+
         estado: 'PROCESADA',
         procesada: true,
       });

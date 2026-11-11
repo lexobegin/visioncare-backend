@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import { ParseIdPipe } from '../../common/pipes';
@@ -24,6 +25,7 @@ import { PaginationDto, RespuestaPaginada } from '../../common/dto/pagination.dt
 import {
   ActualizarPerfilDto,
   AdminActualizarUsuarioDto,
+  AdminCrearUsuarioDto,
   CambiarContrasenaDto,
   UsuarioResponseDto,
 } from './dto';
@@ -90,6 +92,17 @@ export class UsuariosController {
 
   // ═══════════════ ADMINISTRACIÓN ═══════════════
 
+  @Post()
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'CU34 — Crear usuario y perfil (solo ADMIN)' })
+  @ApiResponse({ status: 201, type: UsuarioResponseDto })
+  crearComoAdmin(
+    @CurrentUser('id_usuario') idAdmin: number,
+    @Body() dto: AdminCrearUsuarioDto,
+  ): Promise<UsuarioResponseDto> {
+    return this.usuariosService.crearComoAdmin(dto, idAdmin);
+  }
+
   @Get()
   @Roles('ADMIN', 'INSTITUCION')
   @ApiOperation({
@@ -114,6 +127,21 @@ export class UsuariosController {
     return this.usuariosService.obtenerPorId(id);
   }
 
+  @Patch(':id/perfil')
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'CU35 — Actualizar perfil de un usuario (solo ADMIN)',
+  })
+  @ApiParam({ name: 'id', example: 1 })
+  @ApiResponse({ status: 200, type: UsuarioResponseDto })
+  @ApiResponse({ status: 404, description: 'Usuario o perfil no encontrado.' })
+  actualizarPerfilComoAdmin(
+    @Param('id', ParseIdPipe) id: number,
+    @Body() dto: ActualizarPerfilDto,
+  ): Promise<UsuarioResponseDto> {
+    return this.usuariosService.actualizarPerfilComoAdmin(id, dto);
+  }
+
   @Patch(':id')
   @Roles('ADMIN')
   @ApiOperation({
@@ -124,9 +152,10 @@ export class UsuariosController {
   @ApiResponse({ status: 403, description: 'Requiere rol ADMIN.' })
   actualizarComoAdmin(
     @Param('id', ParseIdPipe) id: number,
+    @CurrentUser('id_usuario') idAdmin: number,
     @Body() dto: AdminActualizarUsuarioDto,
   ): Promise<UsuarioResponseDto> {
-    return this.usuariosService.actualizarComoAdmin(id, dto);
+    return this.usuariosService.actualizarComoAdmin(id, dto, idAdmin);
   }
 
   @Delete(':id')
@@ -140,7 +169,8 @@ export class UsuariosController {
   @ApiResponse({ status: 403, description: 'Requiere rol ADMIN.' })
   desactivar(
     @Param('id', ParseIdPipe) id: number,
+    @CurrentUser('id_usuario') idAdmin: number,
   ): Promise<{ mensaje: string }> {
-    return this.usuariosService.desactivar(id);
+    return this.usuariosService.desactivar(id, idAdmin);
   }
 }
