@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import {
+  ItemProductoDto,
+  ItemSenalDto,
+  ResultadoBilleteDto,
+  ResultadoColoresDto,
+  ResultadoDescripcionDto,
+  ResultadoOcrDto,
+} from './resultados-analisis.dto';
+
 /** Detección individual dentro de una captura */
 export class DeteccionResponseDto {
   @ApiProperty({ example: 1 })
@@ -86,6 +95,50 @@ export class CapturaResponseDto {
 
   @ApiPropertyOptional({ type: [DeteccionResponseDto] })
   detecciones?: DeteccionResponseDto[];
+
+  @ApiPropertyOptional({
+    example: 'OBJETOS',
+    description: 'Tipo de análisis ejecutado (eco del request)',
+  })
+  tipo_analisis?: string;
+
+  /** ── Resultados por tipo (solo el del análisis ejecutado viene lleno) ── */
+
+  @ApiPropertyOptional({
+    type: ResultadoOcrDto,
+    description: 'CU11 — solo cuando tipo_analisis=OCR',
+  })
+  lectura_ocr?: ResultadoOcrDto;
+
+  @ApiPropertyOptional({
+    type: [ItemSenalDto],
+    description: 'CU12 — solo cuando tipo_analisis=SENALES',
+  })
+  senales?: ItemSenalDto[];
+
+  @ApiPropertyOptional({
+    type: [ItemProductoDto],
+    description: 'CU13 — solo cuando tipo_analisis=PRODUCTOS',
+  })
+  productos?: ItemProductoDto[];
+
+  @ApiPropertyOptional({
+    type: ResultadoColoresDto,
+    description: 'CU14 — solo cuando tipo_analisis=COLORES',
+  })
+  colores?: ResultadoColoresDto;
+
+  @ApiPropertyOptional({
+    type: ResultadoBilleteDto,
+    description: 'CU15/16 — solo cuando tipo_analisis=BILLETES',
+  })
+  billete?: ResultadoBilleteDto;
+
+  @ApiPropertyOptional({
+    type: ResultadoDescripcionDto,
+    description: 'CU10 — solo cuando tipo_analisis=DESCRIPCION',
+  })
+  descripcion?: ResultadoDescripcionDto;
 
   @ApiPropertyOptional({
     example: 'Se detectaron: 2 personas y 1 bicicleta.',

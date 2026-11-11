@@ -1,19 +1,29 @@
+import { TipoAnalisis } from '../capturas/dto/tipo-analisis.enum';
+
 /**
  * ══════════════════════════════════════════════════════
- * Catálogo de intenciones de voz de VisionCare AI (CU06).
+ * Catálogo de intenciones de voz (CU06) — SPRINT 2.
  *
- * Cada intención mapea a un caso de uso del sistema. La app
- * móvil recibe `accion_app` y ejecuta la función asociada.
+ * Cada intención mapea a un caso de uso y, para los análisis
+ * visuales, incluye `tipoAnalisis` (catálogo de la Tanda 3):
+ * la app móvil abre la cámara con ESE análisis pre-seleccionado
+ * y el usuario solo confirma capturando.
  *
- * ORDEN IMPORTANTE = prioridad de detección:
- *   1. Emergencias primero (nunca deben perderse)
- *   2. Intenciones específicas después
- *   3. Genéricas al final
+ * CAMBIOS S2:
+ *   + ACTIVAR_ASISTENTE / DETENER_ASISTENTE (Modo Continuo)
+ *   ~ DETECTAR_OBSTACULOS → activa el Modo Continuo (HU09 es
+ *     continua: el asistente del pecho acompaña caminando)
+ *   + tipoAnalisis en las intenciones de análisis visual
  *
- * Los patrones están en minúsculas y SIN tildes porque el
- * texto se normaliza antes del matching ("¿Qué ves?" →
- * "que ves"). El algoritmo gana la intención con MÁS
- * patrones coincidentes; en empate, la de mayor prioridad.
+ * ORDEN = prioridad de detección:
+ *   1. Emergencias (nunca se pierden)
+ *   2. Control del asistente
+ *   3. Análisis específicos
+ *   4. Genéricas
+ *
+ * Patrones en minúsculas y SIN tildes (el texto se normaliza).
+ * Gana la intención con MÁS patrones coincidentes; empate →
+ * la de mayor prioridad en el catálogo.
  * ══════════════════════════════════════════════════════
  */
 export interface IntencionVoz {
@@ -21,14 +31,14 @@ export interface IntencionVoz {
   codigo: string;
   /** Caso de uso del sistema asociado */
   casoUso: string;
-  /** Descripción legible (Swagger / admin web) */
   descripcion: string;
-  /** Ejemplos de frases (documentación y pruebas) */
   ejemplos: string[];
-  /** Regex de detección sobre el texto normalizado */
+  /** Regex sobre el texto normalizado */
   patrones: RegExp[];
-  /** Acción que debe ejecutar la app móvil */
+  /** Acción que ejecuta la app móvil */
   accionApp: string;
+  /** S2 — análisis pre-seleccionado (si aplica) */
+  tipoAnalisis?: TipoAnalisis;
   /** Texto sugerido para el TTS */
   respuestaVoz: string;
 }
@@ -59,18 +69,48 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
     respuestaVoz: 'Compartiendo tu ubicación con tus contactos.',
   },
 
-  // ═════════ 2. INTENCIONES ESPECÍFICAS ═════════
+  // ═════════ 2. CONTROL DEL ASISTENTE (Modo Continuo) ═════════
+  {
+    codigo: 'ACTIVAR_ASISTENTE',
+    casoUso: 'CU09',
+    descripcion:
+      'Activar el Modo Continuo: narración automática del entorno',
+    ejemplos: ['activa el asistente', 'modo continuo', 'acompañame'],
+    patrones: [
+      /\b(activa|activar|enciende|inicia|empieza)\b.*\b(asistente|modo continuo|acompanamiento)\b/,
+      /\b(modo continuo|asistente continuo)\b/,
+      /\b(acompaname|guiame caminando)\b/,
+    ],
+    accionApp: 'ACTIVAR_MODO_CONTINUO',
+    respuestaVoz:
+      'Modo asistente activado. Te iré informando de lo que hay al frente.',
+  },
+  {
+    codigo: 'DETENER_ASISTENTE',
+    casoUso: 'CU09',
+    descripcion: 'Desactivar el Modo Continuo',
+    ejemplos: ['detén el asistente', 'para el asistente', 'modo manual'],
+    patrones: [
+      /\b(deten|detener|para|desactiva|apaga|cierra|quita)\b.*\b(asistente|modo continuo)\b/,
+      /\b(modo manual|suficiente|ya basta)\b/,
+    ],
+    accionApp: 'DETENER_MODO_CONTINUO',
+    respuestaVoz: 'Modo asistente desactivado.',
+  },
+
+  // ═════════ 3. ANÁLISIS ESPECÍFICOS (con tipoAnalisis) ═════════
   {
     codigo: 'RECONOCER_BILLETES',
     casoUso: 'CU15',
-    descripcion: 'Reconocer billetes (moneda y denominación)',
+    descripcion: 'Reconocer billetes (moneda, denominación y autenticidad)',
     ejemplos: ['¿qué billete es?', 'reconocer dinero', '¿cuánto vale?'],
     patrones: [
-      /\b(billetes?|dinero|monedas?)\b/,
-      /\b(cuanto vale este|cuanto es este)\b/,
+      /\b(billetes?|dinero)\b/,
+      /\b(cuanto vale este|cuanto es este|que valor tiene)\b/,
     ],
     accionApp: 'RECONOCER_BILLETES',
-    respuestaVoz: 'Reconociendo el billete.',
+    tipoAnalisis: TipoAnalisis.BILLETES,
+    respuestaVoz: 'Reconociendo el billete. Colócalo plano frente a la cámara.',
   },
   {
     codigo: 'RECONOCER_COLORES',
@@ -82,6 +122,7 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
       /\b(de que color|que color tiene)\b/,
     ],
     accionApp: 'RECONOCER_COLORES',
+    tipoAnalisis: TipoAnalisis.COLORES,
     respuestaVoz: 'Identificando el color.',
   },
   {
@@ -90,10 +131,11 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
     descripcion: 'Identificar productos y objetos comerciales',
     ejemplos: ['¿qué producto es esto?', 'reconocer producto'],
     patrones: [
-      /\b(productos?|envases?|etiquetas?)\b/,
+      /\b(productos?|envases?|empaques?)\b/,
       /\b(que producto)\b/,
     ],
     accionApp: 'RECONOCER_PRODUCTOS',
+    tipoAnalisis: TipoAnalisis.PRODUCTOS,
     respuestaVoz: 'Identificando el producto.',
   },
   {
@@ -106,6 +148,7 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
       /\b(donde esta la salida|donde hay un bano|donde estan las escaleras)\b/,
     ],
     accionApp: 'RECONOCER_SENALES',
+    tipoAnalisis: TipoAnalisis.SENALES,
     respuestaVoz: 'Buscando señales y lugares de interés.',
   },
   {
@@ -118,18 +161,8 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
       /\b(que dice|lee el texto|leer texto)\b/,
     ],
     accionApp: 'LEER_TEXTO',
-    respuestaVoz: 'Leyendo el texto.',
-  },
-  {
-    codigo: 'DETECTAR_OBSTACULOS',
-    casoUso: 'CU09',
-    descripcion: 'Detectar obstáculos y riesgos en el desplazamiento',
-    ejemplos: ['detectar obstáculos', '¿hay peligro adelante?'],
-    patrones: [
-      /\b(obstaculos?|peligros?|riesgos?)\b/,
-    ],
-    accionApp: 'DETECTAR_OBSTACULOS',
-    respuestaVoz: 'Detectando obstáculos en tu camino.',
+    tipoAnalisis: TipoAnalisis.OCR,
+    respuestaVoz: 'Leyendo el texto. Acerca la cámara a lo que quieres leer.',
   },
   {
     codigo: 'DESCRIBIR_ENTORNO',
@@ -141,6 +174,7 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
       /\b(alrededor|que hay alrededor|donde estoy)\b/,
     ],
     accionApp: 'DESCRIBIR_ENTORNO',
+    tipoAnalisis: TipoAnalisis.DESCRIPCION,
     respuestaVoz: 'Describiendo tu entorno.',
   },
   {
@@ -153,8 +187,25 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
       /\b(reconocer objetos|identifica objetos|que tengo enfrente|que ves delante)\b/,
     ],
     accionApp: 'RECONOCER_OBJETOS',
+    tipoAnalisis: TipoAnalisis.OBJETOS,
     respuestaVoz: 'Analizando los objetos de tu entorno.',
   },
+  {
+    codigo: 'DETECTAR_OBSTACULOS',
+    casoUso: 'CU09',
+    descripcion:
+      'Detección de obstáculos — activa el Modo Continuo (narración automática)',
+    ejemplos: ['detectar obstáculos', '¿hay peligro adelante?'],
+    patrones: [
+      /\b(obstaculos?|peligros?|riesgos?)\b/,
+    ],
+    accionApp: 'ACTIVAR_MODO_CONTINUO', // 🆕 S2: HU09 es continua
+    tipoAnalisis: TipoAnalisis.OBJETOS,
+    respuestaVoz:
+      'Activando la detección de obstáculos. Te avisaré si hay peligro al frente.',
+  },
+
+  // ═════════ 4. INTENCIONES GENERALES ═════════
   {
     codigo: 'INICIAR_NAVEGACION',
     casoUso: 'CU24',
@@ -164,10 +215,8 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
       /\b(llevame a|navegar|como llego|navegacion)\b/,
     ],
     accionApp: 'INICIAR_NAVEGACION',
-    respuestaVoz: 'Iniciando la navegación.',
+    respuestaVoz: 'La navegación asistida estará disponible en el Sprint 3.',
   },
-
-  // ═════════ 3. INTENCIONES GENERALES ═════════
   {
     codigo: 'VER_HISTORIAL',
     casoUso: 'CU23',
@@ -183,7 +232,7 @@ export const INTENCIONES_VOZ: IntencionVoz[] = [
   {
     codigo: 'CAPTURAR_ENTORNO',
     casoUso: 'CU07',
-    descripcion: 'Capturar una foto del entorno para análisis',
+    descripcion: 'Capturar y guardar una foto del entorno',
     ejemplos: ['captura', 'toma una foto', 'mira esto'],
     patrones: [
       /\b(captura|capturar|fotografias?)\b/,
@@ -201,15 +250,15 @@ export const INTENCION_DESCONOCIDA = {
   accionApp: 'NINGUNA',
   respuestaVoz:
     'No entendí el comando. Puedes decir: ¿qué ves?, lee esto, ' +
-    '¿de qué color es?, o ayuda.',
+    '¿de qué color es?, ¿qué billete es?, activa el asistente, o ayuda.',
 };
 
-/** Normaliza el texto: minúsculas, sin tildes ni signos de puntuación */
+/** Normaliza el texto: minúsculas, sin tildes ni puntuación */
 export function normalizarTexto(texto: string): string {
   return texto
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // elimina diacríticos (á→a, é→e…)
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[¿?¡!.,;:"'()]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

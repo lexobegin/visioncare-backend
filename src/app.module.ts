@@ -31,6 +31,10 @@ import { CapturasModule } from './modules/capturas/capturas.module';
 
 import { HistorialModule } from './modules/historial/historial.module';
 
+import { AlertasModule } from './modules/alertas/alertas.module';
+
+import { AyudasModule } from './modules/ayuda/ayudas.module';
+
 /**
  * ══════════════════════════════════════════════════════
  * Módulo raíz de VisionCare AI
@@ -78,9 +82,11 @@ import { HistorialModule } from './modules/historial/historial.module';
     AccesibilidadModule,
     ContactosModule,
     VozModule,
-    ArchivosModule,   // global (R2)
+    ArchivosModule, // global (R2)
     CapturasModule,
-    HistorialModule, // 🆕
+    AlertasModule, // (HU17–19 + CU38)
+    AyudasModule,
+    HistorialModule,
   ],
 
   controllers: [HealthController],

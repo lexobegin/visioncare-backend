@@ -62,6 +62,7 @@ export class VozController {
       descripcion: i.descripcion,
       ejemplos: i.ejemplos,
       accion_app: i.accionApp,
+      tipo_analisis: i.tipoAnalisis ?? null,
     }));
   }
 

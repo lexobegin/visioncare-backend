@@ -25,6 +25,7 @@ interface DeteccionIntencion {
   casoUso: string | null;
   accionApp: string;
   respuestaVoz: string;
+  tipoAnalisis: string | null;
   /** Patrones que coincidieron (informativo) */
   coincidencias: number;
 }
@@ -96,6 +97,7 @@ export class VozService {
       intencion: deteccion.codigo,
       caso_uso: deteccion.casoUso,
       accion_app: deteccion.accionApp,
+      tipo_analisis: deteccion.tipoAnalisis,
       respuesta_voz: deteccion.respuestaVoz,
       confianza,
       fecha_ejecucion: registro.fecha_ejecucion,
@@ -125,6 +127,7 @@ export class VozService {
         codigo: INTENCION_DESCONOCIDA.codigo,
         casoUso: INTENCION_DESCONOCIDA.casoUso,
         accionApp: INTENCION_DESCONOCIDA.accionApp,
+        tipoAnalisis: null,
         respuestaVoz: INTENCION_DESCONOCIDA.respuestaVoz,
         coincidencias: 0,
       };
@@ -134,6 +137,7 @@ export class VozService {
       codigo: mejor.intencion.codigo,
       casoUso: mejor.intencion.casoUso,
       accionApp: mejor.intencion.accionApp,
+      tipoAnalisis: mejor.intencion.tipoAnalisis ?? null,
       respuestaVoz: mejor.intencion.respuestaVoz,
       coincidencias: mejor.coincidencias,
     };
