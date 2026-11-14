@@ -12,9 +12,13 @@ import { AyudasController } from './ayudas.controller';
 import { AyudasService } from './ayudas.service';
 import { NotificacionesAyudaService } from './notificaciones-ayuda.service';
 
+// ─── Sprint 3 — CU21 (compartir ubicación autorizada) ───
+import { UbicacionesController } from './ubicaciones.controller';
+import { UbicacionesService } from './ubicaciones.service';
+
 /**
  * ══════════════════════════════════════════════════════
- * Módulo de ayuda (CU20).
+ * Módulo de ayuda (CU20 + CU21 Sprint 3).
  *
  * Imports necesarios:
  *   - AlertasModule  → Repository<Alerta> (alerta interna)
@@ -22,7 +26,12 @@ import { NotificacionesAyudaService } from './notificaciones-ayuda.service';
  *   - HistorialModule→ HistorialService (evento AYUDA_SOLICITADA)
  *
  * Exporta AyudasService: el módulo de navegación/seguridad
- * (Sprint 3: compartir ubicación CU21) lo reutilizará.
+ * lo reutilizará.
+ *
+ * Sprint 3 (CU21): UbicacionesController/Service — el móvil
+ * envía pings GPS (asistente continuo o toggle) y el mapa web
+ * de ADMIN/INSTITUCION muestra a los usuarios "en vivo" con
+ * llamadas al usuario y a sus contactos autorizados.
  * ══════════════════════════════════════════════════════
  */
 @Module({
@@ -33,9 +42,9 @@ import { NotificacionesAyudaService } from './notificaciones-ayuda.service';
     HistorialModule,
   ],
 
-  controllers: [AyudasController],
+  controllers: [AyudasController, UbicacionesController],
 
-  providers: [AyudasService, NotificacionesAyudaService],
+  providers: [AyudasService, NotificacionesAyudaService, UbicacionesService],
 
   exports: [AyudasService],
 })

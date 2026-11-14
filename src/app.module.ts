@@ -35,6 +35,18 @@ import { AlertasModule } from './modules/alertas/alertas.module';
 
 import { AyudasModule } from './modules/ayuda/ayudas.module';
 
+import { IncidentesModule } from './modules/incidentes/incidentes.module';
+
+import { NavegacionModule } from './modules/navegacion/navegacion.module';
+
+import { VisioncoachModule } from './modules/visioncoach/visioncoach.module';
+
+import { SincronizacionModule } from './modules/sincronizacion/sincronizacion.module';
+
+import { ReportesModule } from './modules/reportes/reportes.module';
+
+import { MonitoreoModule } from './modules/monitoreo/monitoreo.module';
+
 /**
  * ══════════════════════════════════════════════════════
  * Módulo raíz de VisionCare AI
@@ -87,6 +99,12 @@ import { AyudasModule } from './modules/ayuda/ayudas.module';
     AlertasModule, // (HU17–19 + CU38)
     AyudasModule,
     HistorialModule,
+    IncidentesModule,
+    NavegacionModule,
+    VisioncoachModule,
+    SincronizacionModule,
+    ReportesModule,
+    MonitoreoModule,
   ],
 
   controllers: [HealthController],
