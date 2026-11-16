@@ -86,6 +86,16 @@ export class RegistrarCapturaDto {
   longitud?: number;
 
   @ApiPropertyOptional({
+    example: 12.5,
+    description: 'Precisión del fix GPS en metros (informativo)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'precision_gps debe ser un número.' })
+  @Min(0, { message: 'precision_gps no puede ser negativo.' })
+  precision_gps?: number;
+
+  @ApiPropertyOptional({
     default: true,
     example: true,
     description:

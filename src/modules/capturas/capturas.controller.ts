@@ -86,6 +86,11 @@ export class CapturasController {
         origen: { type: 'string', enum: ['CAMARA', 'GALERIA'] },
         latitud: { type: 'number', example: -17.7833 },
         longitud: { type: 'number', example: -63.1821 },
+        precision_gps: {
+          type: 'number',
+          example: 12.5,
+          description: 'Precisión del fix GPS en metros (informativo)',
+        },
         reconocer: {
           type: 'boolean',
           example: true,
