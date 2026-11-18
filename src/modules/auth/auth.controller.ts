@@ -13,17 +13,16 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '../../common/decorators';
-import { LoginDto } from './dto/login.dto';
-import { RegistroDto } from './dto/registro.dto';
-import { TokenResponseDto } from './dto/token-response.dto';
+import { LoginDto, RegistroDto, SocialLoginDto, TokenResponseDto } from './dto';
 import { AuthService } from './auth.service';
 
 /**
  * ══════════════════════════════════════════════════════
  * Endpoints de autenticación (públicos):
  *
- *   POST /api/v1/auth/registro  → CU01 (crear cuenta + perfil)
- *   POST /api/v1/auth/login     → CU02 (obtener token JWT)
+ *   POST /api/v1/auth/registro      → CU01 (crear cuenta + perfil)
+ *   POST /api/v1/auth/login         → CU02 (obtener token JWT con contraseña)
+ *   POST /api/v1/auth/social-login  → CU02 (Google One Tap, Apple, Facebook)
  *
  * Rate limiting reforzado: son endpoints sensibles a ataques
  * de fuerza bruta, por eso tienen límites más estrictos que
@@ -67,7 +66,7 @@ export class AuthController {
   }
 
   /**
-   * CU02 — Inicio de sesión.
+   * CU02 — Inicio de sesión con credenciales.
    * Valida credenciales y devuelve el token JWT.
    */
   @Public()
@@ -76,7 +75,7 @@ export class AuthController {
   // Máx. 5 intentos por minuto por IP (protección fuerza bruta)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({
-    summary: 'CU02 — Iniciar sesión (valida credenciales, devuelve token)',
+    summary: 'CU02 — Iniciar sesión con credenciales tradicionales',
   })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -94,5 +93,35 @@ export class AuthController {
   })
   async login(@Body() dto: LoginDto): Promise<TokenResponseDto> {
     return this.authService.login(dto);
+  }
+
+  /**
+   * CU02 (Social) — Inicio de sesión / Registro en un toque con Google, Apple o Facebook.
+   * Fricción Cero: Valida el token del proveedor social y autentica o crea la cuenta.
+   */
+  @Public()
+  @Post('social-login')
+  @HttpCode(HttpStatus.OK)
+  // Máx. 15 intentos por minuto por IP
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'CU02 — Iniciar sesión o registro en un toque (Google, Apple, Facebook)',
+  })
+  @ApiBody({ type: SocialLoginDto })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Autenticación social exitosa. Token JWT de VisionCare emitido.',
+    type: TokenResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Token del proveedor inválido o expirado.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Cuenta bloqueada o inactiva.',
+  })
+  async socialLogin(@Body() dto: SocialLoginDto): Promise<TokenResponseDto> {
+    return this.authService.loginSocial(dto);
   }
 }

@@ -44,9 +44,18 @@ export class Usuario {
    * Hash bcrypt. ⚠️ select:false → este campo NO se devuelve en
    * find()/findOne() normales (nunca se filtra por accidente).
    * Para login se recupera explícitamente con query builder.
+   * Nullable para usuarios que inician con Google / Apple / Facebook.
    */
-  @Column('text', { name: 'contrasena_hash', select: false })
-  contrasena_hash: string;
+  @Column('text', { name: 'contrasena_hash', select: false, nullable: true })
+  contrasena_hash?: string | null;
+
+  /** Proveedor de autenticación: LOCAL, GOOGLE, APPLE, FACEBOOK */
+  @Column('varchar', { length: 50, default: 'LOCAL', name: 'proveedor_auth' })
+  proveedor_auth?: string;
+
+  /** Identificador único del usuario provisto por Google/Apple/Facebook */
+  @Column('varchar', { length: 255, nullable: true, name: 'id_proveedor' })
+  id_proveedor?: string | null;
 
   @Column('varchar', { length: 20, default: 'USUARIO' })
   rol: RolUsuario;

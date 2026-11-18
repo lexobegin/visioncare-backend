@@ -13,6 +13,14 @@ dist/
 .env
 .env.local
 .env.*.local
+*.env
+
+# Certificados y llaves privadas
+*.pem
+*.key
+*.cert
+*.pfx
+*.p12
 
 # Logs
 logs/

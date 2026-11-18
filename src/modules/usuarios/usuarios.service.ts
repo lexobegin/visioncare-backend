@@ -123,6 +123,12 @@ export class UsuariosService {
       throw new NotFoundException('Usuario no encontrado.');
     }
 
+    if (!usuario.contrasena_hash) {
+      throw new BadRequestException(
+        'Esta cuenta utiliza acceso social y no tiene contraseña asignada.',
+      );
+    }
+
     const contrasenaValida = await bcrypt.compare(
       dto.contrasena_actual,
       usuario.contrasena_hash,
